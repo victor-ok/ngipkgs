@@ -22,6 +22,10 @@ rec {
     sources
     ;
 
+  optionsDoc = pkgs.nixosOptionsDoc {
+    inherit (evaluated-modules) options;
+  };
+
   # TODO: we should be exporting our custom functions as `lib`, but refactoring
   # this to use `pkgs.lib` everywhere is a lot of movement
   lib' = {
@@ -36,6 +40,66 @@ rec {
           if lib.isAttrs value then f (path + name + separator) value else { ${path + name} = value; };
       in
       f "";
+
+    # Recursively evaluate attributes for an attribute set.
+    # Coupled with an evaluated nixos configuration, this presents an efficient
+    # way for checking module types.
+    forceEvalRecursive =
+      attrs:
+      lib.mapAttrsRecursive (
+        n: v:
+        if lib.isList v then
+          map (
+            i:
+            # if eval fails
+            if !(builtins.tryEval i).success then
+              # recursively recurse into attrsets
+              if lib.isAttrs i then lib'.forceEvalRecursive i else (builtins.tryEval i).success
+            else
+              (builtins.tryEval i).success
+          ) v
+        else
+          (builtins.tryEval v).success
+      ) attrs;
+
+    # get the path of NixOS module from string
+    # example:
+    # lib'.moduleLocFromOptionString "services.ntpd-rs"
+    # => "/nix/store/...-source/nixos/modules/services/networking/ntp/ntpd-rs.nix"
+    moduleLocFromOptionString =
+      let
+        inherit
+          (lib.evalModules {
+            class = "nixos";
+            specialArgs.modulesPath = "${sources.nixpkgs}/nixos/modules";
+            modules = [
+              ({
+                config = {
+                  _module.check = false;
+                  nixpkgs.hostPlatform = if builtins.isNull system then builtins.currentSystem else system;
+                };
+              })
+            ] ++ import "${sources.nixpkgs}/nixos/modules/module-list.nix";
+          })
+          options
+          ;
+      in
+      opt:
+      let
+        locList = lib.splitString "." opt;
+        optAttrs = lib.getAttrFromPath locList options;
+
+        # collect all file paths from all options
+        collectFiles =
+          attrs:
+          let
+            # get value of `files` attr or empty list
+            getFiles =
+              attr: if attr.value ? files && builtins.isList attr.value.files then attr.value.files else [ ];
+          in
+          lib.concatMap getFiles (lib.attrsToList attrs);
+      in
+      lib.head (collectFiles optAttrs);
   };
 
   overlays.default =
@@ -62,15 +126,51 @@ rec {
     }
     // foldl recursiveUpdate { } (map (project: project.nixos.modules) (attrValues projects));
 
+  ngipkgsModules = lib.filter (m: m != null) (
+    lib.mapAttrsToList (name: value: value) nixos-modules.services
+    ++ lib.mapAttrsToList (name: value: value) nixos-modules.programs
+  );
+
+  nixosModules = import "${sources.nixpkgs}/nixos/modules/module-list.nix";
   extendedNixosModules =
-    with lib;
     [
-      nixos-modules.ngipkgs
+      # Allow using packages from `ngipkgs` to be used alongside regular `pkgs`
+      {
+        nixpkgs.overlays = [ overlays.default ];
+      }
       # TODO: needed for examples that use sops (like Pretalx)
       sops-nix
     ]
-    ++ attrValues nixos-modules.programs
-    ++ attrValues nixos-modules.services;
+    ++ ngipkgsModules
+    ++ nixosModules;
+
+  evaluated-modules = lib.evalModules {
+    class = "nixos";
+    modules = [
+      {
+        nixpkgs.hostPlatform = { inherit system; };
+
+        networking = {
+          domain = "invalid";
+          hostName = "options";
+        };
+
+        # faster eval time
+        documentation.nixos.enable = false;
+        documentation.man.generateCaches = false;
+
+        system.stateVersion = "23.05";
+      }
+      ./overview/demo/shell.nix
+      raw-projects # for checks
+    ] ++ extendedNixosModules;
+    specialArgs = {
+      modulesPath = "${sources.nixpkgs}/nixos/modules";
+    };
+  };
+
+  # recursively evaluates each attribute for all projects
+  check-projects = lib'.forceEvalRecursive evaluated-modules.config.projects;
 
   ngipkgs = import ./pkgs/by-name { inherit pkgs lib dream2nix; };
 
@@ -84,20 +184,11 @@ rec {
     };
   };
 
-  project-models = import ./projects/models.nix { inherit lib pkgs sources; };
-
-  # we mainly care about the types being checked
-  templates.project =
-    let
-      project-metadata =
-        (project-models.project (import ./maintainers/templates/project { inherit lib pkgs sources; }))
-        .metadata;
-    in
-    # fake derivation for flake check
-    pkgs.writeText "dummy" (lib.strings.toJSON project-metadata);
+  projects = make-projects raw-projects.config.projects;
 
   # TODO: find a better place for this
-  projects =
+  make-projects =
+    projects:
     with lib;
     let
       nixosTest =
@@ -164,10 +255,15 @@ rec {
           ) ((empty-if-null project.nixos.tests or { }) // (filter-map (nixos.examples or { }) "tests"));
         };
     in
-    mapAttrs (name: project: hydrate project) raw-projects;
+    mapAttrs (name: project: hydrate project) projects;
 
   shell = pkgs.mkShellNoCC {
-    packages = [ ];
+    packages = [
+      # live overview watcher
+      (pkgs.devmode.override {
+        buildArgs = "${toString ./overview/devmode.nix} --show-trace";
+      })
+    ];
   };
 
   demo = import ./overview/demo {
@@ -178,4 +274,9 @@ rec {
       extendedNixosModules
       ;
   };
+
+  inherit (demo)
+    demo-vm
+    demo-shell
+    ;
 }

@@ -1,19 +1,24 @@
+# NOTE: run a live overview watcher by executing `devmode`, inside a nix shell
 {
   lib,
   lib',
   options,
+  nixpkgs,
   pkgs,
   projects,
   self,
+  system,
 }:
 let
   inherit (builtins)
+    head
     any
     attrNames
     attrValues
     concatStringsSep
     filter
     isList
+    isInt
     readFile
     substring
     toJSON
@@ -21,6 +26,9 @@ let
     ;
 
   join = concatStringsSep;
+
+  eval = module: (lib.evalModules { modules = [ module ]; }).config;
+  inherit (lib) mkOption types;
 
   inherit (lib)
     concatLines
@@ -30,17 +38,35 @@ let
     mapAttrsToList
     optionalString
     recursiveUpdate
+    filterAttrs
     mapAttrs'
     nameValuePair
     take
     drop
+    splitString
+    intersperse
     ;
 
   empty =
     xs:
     assert isList xs;
     xs == [ ];
-  heading = i: text: "<h${toString i}>${text}</h${toString i}>";
+  heading =
+    i: anchor: text:
+    assert (isInt i && i > 0);
+    if i == 1 then
+      ''
+        <h1>${text}</h1>
+      ''
+    else
+      ''
+        <a class="heading" href="#${anchor}">
+          <h${toString i} id="${anchor}">
+            ${text}
+            <span class="anchor"/>
+          </h${toString i}>
+        </a>
+      '';
 
   # Splits a compressed date up into ISO 8601
   lastModified =
@@ -71,7 +97,7 @@ let
         );
       in
       filter (option: any ((flip hasPrefix) (join "." option.loc)) spec) (attrValues options);
-    examples = project: attrValues project.nixos.examples;
+    examples = project: attrValues (filterAttrs (name: _: name != "demo") project.nixos.examples);
   };
 
   # This doesn't actually produce a HTML string but a Jinja2 template string
@@ -80,6 +106,34 @@ let
   markdownToHtml = markdown: "{{ markdown_to_html(${toJSON markdown}) }}";
 
   render = {
+    # A code snippet that is copyable and optionally downloadable
+    codeSnippet.one =
+      {
+        filename,
+        language ? "nix",
+        relative ? false,
+        downloadable ? false,
+      }:
+      ''
+        <div class="code-block">
+          {{ include_code("${language}", "${filename}" ${optionalString relative ", relative_path=True"}) }}
+          <div class="code-buttons">
+            ${optionalString downloadable ''
+              <a class="button download" href="${filename}" download>Download</a>
+            ''}
+            <template scripted>
+              <button class="button copy" onclick="copyToClipboard(this, '${filename}')">
+                  ${optionalString (!relative) ''
+                    <script type="application/json">
+                      ${toJSON (readFile filename)}
+                    </script>
+                  ''}
+                  Copy
+              </button>
+            </template>
+          </div>
+        </div>
+      '';
     options = rec {
       one =
         prefixLength: option:
@@ -112,11 +166,13 @@ let
         projectOptions:
         let
           # The length of the attrs path that is common to all options
-          # TODO: calculate automatically
+          # TODO: calculate dynamically
           prefixLength = 2;
+          commonPrefix = take prefixLength (head projectOptions).loc;
         in
         optionalString (!empty projectOptions) ''
-          <section><details><summary>${heading 3 "Options"}</summary><dl>
+          ${heading 2 "service" "Options"}
+          <section><details><summary><code>${join "." commonPrefix}</code></summary><dl>
           ${concatLines (map (one prefixLength) projectOptions)}
           </dl></details></section>
         '';
@@ -124,20 +180,17 @@ let
 
     examples = rec {
       one = example: ''
-        <li>
+        <section><details><summary>${example.description}</summary>
 
-        ${example.description}
+        ${render.codeSnippet.one { filename = example.module; }}
 
-        <pre><code>${readFile example.module}</code></pre>
-
-        </li>
+        </details></section>
       '';
       many =
         examples:
         optionalString (!empty examples) ''
-          <section><details><summary>${heading 3 "Examples"}</summary><ul>
+          ${heading 2 "examples" "Examples"}
           ${concatLines (map one examples)}
-          </ul></details></section>
         '';
     };
 
@@ -176,117 +229,124 @@ let
     # The indivdual page of a project
     projects.one = name: project: ''
       <article class="page-width">
-        ${heading 1 name}
+        ${heading 1 null name}
         ${render.metadata.one project.metadata}
         ${render.options.many (pick.options project)}
         ${render.examples.many (pick.examples project)}
+        ${optionalString (project.nixos.examples ? demo) (
+          render.serviceDemo.one project.nixos.modules.services project.nixos.examples.demo
+        )}
       </article>
     '';
 
-    deliverableTags = rec {
-      one = label: ''
-        <span class="deliverable-tag">${label}</span>
-      '';
-      many =
-        project:
-        # TODO is missing in the model yet
-        optionalString false (one "library")
-        + optionalString (project.nixos.modules ? services && project.nixos.modules.services != { }) (
-          one "service"
-        )
-        +
-          # TODO is supposed to represent GUI apps and needs to be distinguished from CLI applications
-          optionalString false (one "application");
-    };
+    demoGlue.one = exampleText: ''
+      # default.nix
+      {
+        ngipkgs ? import (fetchTarball "https://github.com/ngi-nix/ngipkgs/tarball/main") { },
+      }:
+      ngipkgs.demo-vm (
+        ${toString (intersperse "\n " (splitString "\n" exampleText))}
+      )
+    '';
 
-    # The snippets for each project that are rendered on https://ngi.nixos.org
-    projectSnippets = rec {
-      one =
-        name: project:
-        let
-          description = optionalString (project.metadata ? summary) ''
-            <div class="description">${project.metadata.summary}</div>
-          '';
-        in
-        ''
-          <article class="project">
-            <div class="row">
-              <h2>
-                <a href="/project/${name}">${name}</a>
-              </h2>
-              ${render.deliverableTags.many project}
-            </div>
-            ${description}
-          </article>
-        '';
-      many = projects: concatLines (mapAttrsToList one projects);
-    };
+    serviceDemo.one =
+      services: example:
+      let
+        demoSystem = import (nixpkgs + "/nixos/lib/eval-config.nix") {
+          inherit system;
+          modules = (attrValues services) ++ [ example.module ];
+        };
+        openPorts = demoSystem.config.networking.firewall.allowedTCPPorts;
+        # The port that is forwarded to the host so that the user can access the demo service.
+        servicePort = (builtins.head openPorts);
+      in
+      ''
+        ${heading 2 "demo" "Demo"}
+        <details>
+        <summary>Run service in a VM</summary>
+
+        <ol>
+          <li>
+            <strong>Install Nix</strong>
+              <ul>
+                <li>Arch Linux</li>
+                  <pre><code>pacman --sync --refresh --noconfirm curl git jq nix</code></pre>
+                <li>Debian/Ubuntu</li>
+                  <pre><code>apt install --yes curl git jq nix</code></pre>
+              </ul>
+          </li>
+          <li>
+            <strong>Download a configuration file</strong>
+              ${render.codeSnippet.one {
+                filename = "default.nix";
+                relative = true;
+                downloadable = true;
+              }}
+          </li>
+          <li>
+            <strong>Enable binary substituters</strong>
+              <pre><code>NIX_CONFIG='substituters = https://cache.nixos.org/ https://ngi.cachix.org/'$'\n'''trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= ngi.cachix.org-1:n+CAL72ROC3qQuLxIHpV+Tw5t42WhXmMhprAGkRSrOw='</code></pre>
+              <pre><code>export NIX_CONFIG</code></pre>
+          </li>
+          <li>
+            <strong>Build and run a virtual machine</strong>
+              <ul>
+                <li>Arch Linux, Debian Sid and Ubuntu 25.04</li>
+                  <pre><code>nix-build ./default.nix && ./result</code></pre>
+                <li>Debian 12 and Ubuntu 24.04/24.10</li>
+                  <pre><code>rev=$(nix-instantiate --eval --attr sources.nixpkgs.rev https://github.com/ngi-nix/ngipkgs/archive/master.tar.gz | jq --raw-output)</code></pre>
+                  <pre><code>nix-shell -I nixpkgs=https://github.com/NixOS/nixpkgs/archive/$rev.tar.gz --packages nix --run "nix-build ./default.nix && ./result"</code></pre>
+              </ul>
+          </li>
+          <li>
+            <strong>Access the service</strong><br />
+              Open a web browser at <a href="http://localhost:${toString servicePort}">http://localhost:${toString servicePort}</a> .
+          </li>
+        </ol>
+        </details>
+      '';
   };
 
-  # The top-level overview for all projects
-  index = ''
-    <section class="page-width">
-      ${heading 1 "NGIpkgs"}
-
-      <p>
-        NGIpkgs is collection of software applications funded by the <a href="https://www.ngi.eu/ngi-projects/ngi-zero/">Next Generation Internet</a> initiative and packaged for <a href="https://nixos.org">NixOS</a>.
-      </p>
-
-      <p>
-        This service is still <strong>experimental</strong> and under active development.
-        Don't expect anything specific to work yet:
-      </p>
-
-      <ul>
-        <li>The package collection is far incomplete</li>
-        <li>Many packages lack crucial components</li>
-        <li>There are no instructions for getting started</li>
-        <li>How software and the corresponding Nix expressions are exposed is subject to change</li>
-      </ul>
-
-      <p>
-        More information about the project:
-      </p>
-
-      <ul>
-        <li>
-          <a href="https://github.com/ngi-nix/ngipkgs">Source code</a>
-        </li>
-        <li>
-          <a href="https://github.com/ngi-nix/summer-of-nix/issues/41">Issue tracker</a>
-        </li>
-        <li>
-          <a href="https://nixos.org/community/teams/ngi/">Nix@NGI team</a>
-        </li>
-      </ul>
-
-    ${render.projectSnippets.many projects}
-
-    </section>
-
-    <footer>Version: ${version}, Last Modified: ${lastModified}</footer>
-  '';
-
-  # Every HTML page that we generate
-  pages =
-    {
-      "index.html" = {
-        pagetitle = "NGIpkgs software repository";
-        content = index;
-        summary = ''
-          NGIpkgs is collection of software applications funded by the Next
-          Generation Internet initiative and packaged for NixOS. 
-        '';
-      };
+  # HTML project pages
+  projectPages = mapAttrs' (
+    name: project:
+    nameValuePair "project/${name}" {
+      pagetitle = "NGIpkgs | ${name}";
+      content = render.projects.one name project;
+      summary = project.metadata.summary or null;
+      demoFile =
+        if project.nixos.examples ? demo then
+          (pkgs.writeText "default.nix" (render.demoGlue.one (readFile project.nixos.examples.demo.module)))
+        else
+          null;
     }
-    // mapAttrs' (
-      name: project:
-      nameValuePair "project/${name}/index.html" {
-        pagetitle = "NGIpkgs | ${name}";
-        content = render.projects.one name project;
-        summary = project.metadata.summary or null;
-      }
-    ) projects;
+  ) projects;
+
+  index = eval {
+    imports = [ ./content-types/project-list.nix ];
+
+    projects = lib.mapAttrsToList (name: project: {
+      inherit name;
+      description = project.metadata.summary or null;
+      deliverables = {
+        service = project.nixos.modules ? services && project.nixos.modules.services != { };
+        program = project.nixos.modules ? programs && project.nixos.modules.programs != { };
+        demo = project.nixos.examples ? demo;
+      };
+    }) projects;
+    inherit version;
+    inherit lastModified;
+  };
+
+  # The summary page at the overview root
+  indexPage = {
+    pagetitle = "NGIpkgs software repository";
+    content = index;
+    summary = ''
+      NGIpkgs is collection of software applications funded by the Next
+      Generation Internet initiative and packaged for NixOS. 
+    '';
+  };
 
   htmlFile =
     path:
@@ -307,16 +367,52 @@ let
         <link rel="stylesheet" href="/style.css">
       </head>
       <body>
-      ${args.content}
+        ${args.content}
+        <script>
+          // On document load, put all elements into the DOM that can be used with JS only
+          document.addEventListener("DOMContentLoaded", () => {
+            document.querySelectorAll("template[scripted]").forEach(template => {
+                const content = template.content;
+                template.replaceWith(content);
+              });
+          });
+
+          async function copyToClipboard(button, url) {
+            let code;
+            const firstChild = Array.from(button.children).find(child => child.tagName === "SCRIPT");
+            if (firstChild) {
+              // JSON is just used for string escaping
+              code = JSON.parse(firstChild.textContent);
+            } else {
+              const response = await fetch(url);
+              if (!response.ok) {
+                throw new Error("Failed to fetch file: " + response.statusText);
+              }
+              code = await response.text();
+            }
+            await navigator.clipboard.writeText(code);
+            button.textContent = "Copied ✓";
+            setTimeout(() => button.textContent = "Copy", 2000);
+          }
+        </script>
       </body>
       </html>
     '';
 
   # Ensure that directories exist and render the jinja2 template that we composed with Nix so far
-  writeHtmlCommand = path: htmlFile: ''
-    mkdir -p "$out/$(dirname '${path}')"
-    python3 ${./render-template.py} '${htmlFile}' "$out/${path}"
-  '';
+  writeProjectCommand =
+    path: page:
+    ''
+      mkdir -p "$out/${path}"
+    ''
+    + optionalString (page.demoFile != null) ''
+      cp '${page.demoFile}' "$out/${path}/default.nix"
+      chmod +w "$out/${path}/default.nix"
+      nixfmt "$out/${path}/default.nix"
+    ''
+    + ''
+      python3 ${./render-template.py} '${htmlFile path page}' "$out/${path}/index.html"
+    '';
 
   fonts =
     pkgs.runCommand "fonts"
@@ -331,6 +427,12 @@ let
         done
       '';
 
+  highlightingCss =
+    pkgs.runCommand "pygments-css-rules.css" { nativeBuildInputs = [ pkgs.python3Packages.pygments ]; }
+      ''
+        pygmentize -S default -f html -a .code > $out
+      '';
+
 in
 pkgs.runCommand "overview"
   {
@@ -341,17 +443,20 @@ pkgs.runCommand "overview"
         ps: with ps; [
           jinja2
           markdown-it-py
+          pygments
         ]
       ))
+      nixfmt-rfc-style
     ];
   }
   (
     ''
       mkdir -pv $out
-      cp -v ${./style.css} $out/style.css
+      cat ${./style.css} ${highlightingCss} > $out/style.css
       ln -s ${fonts} $out/fonts
+      python3 ${./render-template.py} '${htmlFile "" indexPage}' "$out/index.html"
     ''
-    + (concatLines (mapAttrsToList (path: v: writeHtmlCommand path (htmlFile path v)) pages))
+    + (concatLines (mapAttrsToList (path: page: writeProjectCommand path page) projectPages))
     + ''
 
       vnu -Werror --format json $out/*.html | jq

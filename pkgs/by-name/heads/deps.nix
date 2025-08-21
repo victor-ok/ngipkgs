@@ -75,28 +75,28 @@
       url = "https://github.com/coreboot/coreboot";
       pinned = true;
       rev = "2f1e4e5e8515dd350cc9d68b48d32a5b6b02ae6a";
-      hash = "sha256-EJrr9Spzbpdio7gwqtajkcOvojkit9VZAwVGbzvA6jA=";
+      hash = "sha256-NA0yN4igJR7QTmdLzvvI2p21ObslqU8iFHynEWpLM5I=";
     }
     {
       name = "coreboot-dasharo";
       url = "https://github.com/dasharo/coreboot";
       pinned = true;
       rev = "94e5f5d5b808cf8d8fd5c70d4ef6a08a054f8986";
-      hash = "sha256-DFn3jB+3+YbNDOjz5ctFOg1SKq02vlF9Kk+sd47P+VY=";
+      hash = "sha256-n0wlP7thamybBDAwY1/SAWvwsW7NIJOiaAs406GCuV8=";
     }
     {
       name = "coreboot-purism";
       url = "https://source.puri.sm/firmware/coreboot.git";
       pinned = true;
       rev = "bea9947a1279be7d4a72b38a601d0288d10d1cb8";
-      hash = "sha256-Ml0/1tdk/d2SntrWcNcLLPoANlMpBCcynQRFBDg8CtY=";
+      hash = "sha256-AyyAC8OM1B8qE6Bs47SyCEFyVeyIGrVEWDqf2xb3cDo=";
     }
     {
       name = "coreboot-talos_2";
       url = "https://github.com/Dasharo/coreboot";
       pinned = true;
       rev = "fc47236e9877f4113dfcce07fa928f52d4d2c8ee";
-      hash = "sha256-/3YnbfgD+0L0grXGk0fkvwwQlpRq1mIc0By/6hoEZew=";
+      hash = "sha256-wvb2ln2XfE8plTp7mYBCcv3EhX2QSAzPf0h7mTh+wis=";
     }
     {
       name = "linuxboot";
@@ -109,7 +109,7 @@
   pkgs = [
     {
       name = "bash-5.1.16.tar.gz";
-      url = "https://ftpmirror.gnu.org/bash/bash-5.1.16.tar.gz";
+      url = "https://ftp.gnu.org/gnu/bash/bash-5.1.16.tar.gz";
       hash = "sha256-W6wXIY05EYNFINrRPNH4WrlE4cCa4aulWQa+H4GS9Vg=";
     }
     {
@@ -379,7 +379,7 @@
     }
     {
       name = "purism-blobs-995f66c445841b86e6596e9b297cc4888c0257e5.tar.gz";
-      url = "https://source.puri.sm/coreboot/purism-blobs/-/archive/995f66c445841b86e6596e9b297cc4888c0257e5/purism-blobs-995f66c445841b86e6596e9b297cc4888c0257e5.tar.gz";
+      url = "https://source.puri.sm/firmware/purism-blobs/-/archive/995f66c445841b86e6596e9b297cc4888c0257e5/purism-blobs-995f66c445841b86e6596e9b297cc4888c0257e5.tar.gz";
       hash = "sha256-bSbBKf6NcZpJ9PcmODuq9+22ExGDutpBZ3EbWlMS9RY=";
     }
     {
@@ -666,11 +666,11 @@
         url = "https://ftp.gnu.org/gnu/binutils/binutils-2.37.tar.xz";
         hash = "sha256-gg2XJPAgo+acszeJOgtjwtsWHa3LDgb8Edwp6x6Eoyw=";
       }
-      {
-        name = "coreboot-crossgcc-acpica-unix2-20220331.tar.gz";
-        url = "https://acpica.org/sites/acpica/files/acpica-unix2-20220331.tar.gz";
-        hash = "sha256-CG1rZYX1Zndob+2K9rC1upOuwYC0HSKFobdM0CtY8ko=";
-      }
+
+      # Skipping acpica-unix2-20220331.tar.gz because we don't have a known-good mirror
+      # Candidate (Heads explicitly *doesn't* use this one for this version): https://mirror.math.princeton.edu/pub/libreboot/misc/acpica/acpica-unix2-20220331.tar.gz
+      # Candidate (involves an archive rename): https://distfiles.macports.org/acpica/acpica-unix-20220331.tar.gz
+
       {
         name = "coreboot-crossgcc-llvm-14.0.6.src.tar.xz";
         url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-14.0.6/llvm-14.0.6.src.tar.xz";
@@ -912,17 +912,17 @@
     }
     {
       name = "binutils-2.33.1.tar.xz";
-      url = "https://ftpmirror.gnu.org/gnu/binutils/binutils-2.33.1.tar.xz";
+      url = "https://ftp.gnu.org/gnu/binutils/binutils-2.33.1.tar.xz";
       hash = "sha256-q2b8LRw+wDWbjgiEPJ8ztj6HB+/f9eTMXCAOriRyLL8=";
     }
     {
       name = "gcc-9.4.0.tar.xz";
-      url = "https://ftpmirror.gnu.org/gnu/gcc/gcc-9.4.0/gcc-9.4.0.tar.xz";
+      url = "https://ftp.gnu.org/gnu/gcc/gcc-9.4.0/gcc-9.4.0.tar.xz";
       hash = "sha256-yV2jL0QDeNd1HdlVMxhvf8Bc60+2XrW4UjTmKZ65g44=";
     }
     {
       name = "gmp-6.1.2.tar.bz2";
-      url = "https://ftpmirror.gnu.org/gnu/gmp/gmp-6.1.2.tar.bz2";
+      url = "https://ftp.gnu.org/gnu/gmp/gmp-6.1.2.tar.bz2";
       hash = "sha256-UnW7BPSGOhNRay85OSrF4nL14buAV7GK7Bybedc9j7I=";
     }
     {
@@ -932,12 +932,12 @@
     }
     {
       name = "mpc-1.1.0.tar.gz";
-      url = "https://ftpmirror.gnu.org/gnu/mpc/mpc-1.1.0.tar.gz";
+      url = "https://ftp.gnu.org/gnu/mpc/mpc-1.1.0.tar.gz";
       hash = "sha256-aYXFOBQ8EgjcsaxCztrW/1LiZ7R+X5cBg6PnUSW0PC4=";
     }
     {
       name = "mpfr-4.0.2.tar.bz2";
-      url = "https://ftpmirror.gnu.org/gnu/mpfr/mpfr-4.0.2.tar.bz2";
+      url = "https://ftp.gnu.org/gnu/mpfr/mpfr-4.0.2.tar.bz2";
       hash = "sha256-wF4/AtCeDpAZOEzdWODxnGTm2x/W9ez3e0scYcolOsw=";
     }
     {

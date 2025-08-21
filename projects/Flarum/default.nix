@@ -2,6 +2,7 @@
   lib,
   pkgs,
   sources,
+  ...
 }@args:
 
 {
@@ -19,7 +20,7 @@
       examples.basic = {
         module = ./programs-example.nix;
         description = "";
-        tests.basic = null;
+        tests.basic.module = null;
       };
       links = {
         build = {
@@ -37,11 +38,11 @@
   nixos.modules.services = {
     flarum = {
       name = "flarum";
-      module = "${sources.inputs.nixpkgs}/nixos/modules/services/web-apps/flarum.nix";
+      module = lib.moduleLocFromOptionString "services.flarum";
       examples.basic = {
         module = ./services-example.nix;
         description = "";
-        tests.basic = null;
+        tests.basic.module = null;
       };
       links = {
         build = {

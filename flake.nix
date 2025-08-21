@@ -8,6 +8,8 @@
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   inputs.pre-commit-hooks.inputs.nixpkgs.follows = "nixpkgs";
   inputs.pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
+  inputs.sbt-derivation.inputs.nixpkgs.follows = "nixpkgs";
+  inputs.sbt-derivation.url = "github:zaninime/sbt-derivation";
   inputs.sops-nix.inputs.nixpkgs.follows = "nixpkgs";
   inputs.sops-nix.url = "github:Mic92/sops-nix";
   inputs.buildbot-nix.inputs.nixpkgs.follows = "nixpkgs";
@@ -26,10 +28,10 @@
     }@inputs:
     let
       classic' = import ./. {
-        sources = inputs;
+        flake = self;
         system = null;
       };
-      inherit (classic') lib lib';
+      inherit (classic') lib extension;
 
       inherit (lib)
         concatMapAttrs
@@ -42,11 +44,14 @@
 
       # Finally, define the system-agnostic outputs.
       systemAgnosticOutputs = {
+        lib = extension;
+
         nixosConfigurations = {
           makemake = import ./infra/makemake { inherit inputs; };
         };
 
-        nixosModules = classic'.ngipkgsModules;
+        # WARN: this is currently unstable and subject to change in the future
+        nixosModules = classic'.nixos-modules;
 
         # Overlays a package set (e.g. Nixpkgs) with the packages defined in this flake.
         overlays.default = overlay;
@@ -56,7 +61,7 @@
         system:
         let
           classic = import ./. {
-            sources = inputs;
+            flake = self;
             inherit system;
           };
 
@@ -64,18 +69,7 @@
         in
         rec {
           packages = ngipkgs // {
-            overview = import ./overview {
-              inherit
-                lib
-                lib'
-                self
-                nixpkgs
-                system
-                ;
-              pkgs = pkgs // ngipkgs;
-              projects = classic.projects;
-              options = optionsDoc.optionsNix;
-            };
+            inherit (classic) overview;
 
             options =
               pkgs.runCommand "options.json"
@@ -106,9 +100,7 @@
                         "projects/${projectName}/nixos/tests/${testName}" = test;
                       }) project.nixos.tests;
                       checksForNixosTypes = {
-                        "projects/${projectName}/nixos/check" = pkgs.writeText "${projectName}-eval-check" (
-                          lib.strings.toJSON classic.check-projects.${projectName}
-                        );
+                        "projects/${projectName}/nixos/check" = classic.checks.${projectName};
                       };
                     in
                     checksForNixosTests // checksForNixosTypes;
@@ -136,6 +128,7 @@
                   src = ./.;
                   hooks = {
                     actionlint.enable = true;
+                    editorconfig-checker.enable = true;
                     nixfmt-rfc-style.enable = true;
                   };
                 };

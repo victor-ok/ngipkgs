@@ -2,6 +2,7 @@
   lib,
   pkgs,
   sources,
+  ...
 }@args:
 {
   metadata = {
@@ -24,7 +25,7 @@
           Builds heads for the example qemu-coreboot-fbwhiptail-tpm1-hotp board, and makes the ROM image available
           at a fixed location, for testing it in a VM.
         '';
-        tests.basic = import ./test.nix args;
+        tests.basic.module = import ./test.nix args;
       };
       links = {
         setup = {
@@ -42,12 +43,7 @@
       };
     };
   };
-  # TODO: Referencing `pkgs` here is currently causing eval issues all over ngipkgs.
-  # https://github.com/ngi-nix/ngipkgs/pull/773
-  # Resolve this first before enabling this.
-  /*
-    binary = lib.attrsets.mapAttrs' (
-      board: pkg: lib.attrsets.nameValuePair "${board}.rom" ({ data = "${pkg}/${pkg.passthru.romName}"; })
-    ) (lib.attrsets.filterAttrs (_: lib.attrsets.isDerivation) pkgs.heads);
-  */
+  binary = lib.attrsets.mapAttrs' (
+    board: pkg: lib.attrsets.nameValuePair "${board}.rom" { data = "${pkg}/${pkg.passthru.romName}"; }
+  ) (lib.attrsets.filterAttrs (_: lib.attrsets.isDerivation) pkgs.heads);
 }

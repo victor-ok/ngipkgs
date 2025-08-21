@@ -2,14 +2,19 @@
   lib,
   pkgs,
   sources,
+  ...
 }@args:
 
 {
   name = "Gnucap";
-  metadata.subgrants = [
-    "Gnucap-MixedSignals"
-    "Gnucap-VerilogAMS"
-  ];
+  metadata = {
+    summary = "GNU Circuit Analysis Package";
+    subgrants = [
+      "Gnucap-MixedSignals"
+      "Gnucap-VerilogAMS"
+      "Gnucap-performance"
+    ];
+  };
 
   nixos = {
     modules.programs.gnucap = {
@@ -18,7 +23,7 @@
       examples.gnucap = {
         module = ./example.nix;
         description = "";
-        tests.basic = import ./test.nix args;
+        tests.basic.module = import ./test.nix args;
       };
 
       links = {

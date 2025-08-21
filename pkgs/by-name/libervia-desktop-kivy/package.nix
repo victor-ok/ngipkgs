@@ -8,7 +8,11 @@
   libervia-backend,
   libervia-media,
   wrapGAppsHook3,
+  callPackage,
 }:
+let
+  kivy-garden-modernmenu = callPackage ./kivy-garden-modernmenu.nix { };
+in
 python3Packages.buildPythonApplication rec {
   pname = "libervia-desktop-kivy";
   version = "0.8.0-unstable-2024-10-26";
@@ -34,33 +38,31 @@ python3Packages.buildPythonApplication rec {
     "pillow"
   ];
 
-  nativeBuildInputs =
-    [
-      gobject-introspection
-      imagemagick
-      wrapGAppsHook3
-    ]
-    ++ (with python3Packages; [
-      hatchling
-      pythonRelaxDepsHook
-    ]);
+  nativeBuildInputs = [
+    gobject-introspection
+    imagemagick
+    wrapGAppsHook3
+  ]
+  ++ (with python3Packages; [
+    hatchling
+    pythonRelaxDepsHook
+  ]);
 
   buildInputs = with gst_all_1; [
     gst-plugins-good # autoaudiosink
     gst-plugins-bad # Namespace GstWebRTC not available
   ];
 
-  propagatedBuildInputs =
-    [
-      libervia-backend
-    ]
-    ++ (with python3Packages; [
-      kivy
-      kivy-garden-modernmenu
-      pillow
-      plyer
-      pygobject3
-    ]);
+  propagatedBuildInputs = [
+    libervia-backend
+  ]
+  ++ (with python3Packages; [
+    kivy
+    kivy-garden-modernmenu
+    pillow
+    plyer
+    pygobject3
+  ]);
 
   postInstall = ''
     install -Dm644 misc/org.libervia.LiberviaDesktop.metainfo.xml -t $out/share/metainfo/
@@ -92,5 +94,7 @@ python3Packages.buildPythonApplication rec {
     changelog = "https://repos.goffi.org/libervia-desktop-kivy/file/${src.rev}/CHANGELOG";
     license = lib.licenses.agpl3Plus;
     maintainers = [ ];
+    # FIX: https://buildbot.ngi.nixos.org/#/builders/387/builds/1770
+    broken = true;
   };
 }

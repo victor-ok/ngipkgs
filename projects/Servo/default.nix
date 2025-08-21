@@ -2,6 +2,7 @@
   lib,
   pkgs,
   sources,
+  ...
 }@args:
 
 {
@@ -14,7 +15,7 @@
       "Servo-DX"
       "Servo-Multibrowsing"
       "Servo-Script"
-      "Servo-Servo"
+      "Servo-Multiprocess"
     ];
   };
 
@@ -23,9 +24,15 @@
       module = ./module.nix;
       examples.basic = {
         module = ./example.nix;
-        description = "";
-        tests.basic = null;
+        description = "Enable the servo program";
+        tests.basic.module = pkgs.nixosTests.servo;
       };
     };
+  };
+
+  nixos.demo.shell = {
+    module = ./example.nix;
+    description = "A demo shell for opening valgrind docs with Servo";
+    tests.basic.module = pkgs.nixosTests.servo;
   };
 }

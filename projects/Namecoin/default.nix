@@ -2,14 +2,26 @@
   pkgs,
   lib,
   sources,
+  ...
 }:
 {
+  metadata = {
+    summary = "Blockchain-based decentralized naming system and trust anchor";
+    subgrants = [
+      "Namecoin-Electrum-NMC"
+      "Namecoin-TLS"
+      "Namecoin-ZeroNet"
+      "NamecoinCore"
+      "namecoin"
+    ];
+  };
+
   nixos = {
-    modules.services.namecoind.module = "${sources.inputs.nixpkgs}/nixos/modules/services/networking/namecoind.nix";
-    modules.services.ncdns.module = "${sources.inputs.nixpkgs}/nixos/modules/services/networking/ncdns.nix";
-    modules.programs.electrum-nmc = null;
+    modules.services.namecoind.module = lib.moduleLocFromOptionString "services.namecoind";
+    modules.services.ncdns.module = lib.moduleLocFromOptionString "services.ncdns";
+    modules.programs.electrum-nmc.module = null;
     # the namecoind service module does not add namecoin commands to the environment
-    modules.programs.namecoin = null;
+    modules.programs.namecoin.module = null;
 
     examples.tor-browser-temporary = {
       description = ''
@@ -22,7 +34,7 @@
       module = ./examples/tor-browser-temporary.nix;
       links.documentation.text = "Tor Browser";
       links.documentation.url = "https://www.namecoin.org/download/#tor-browser";
-      tests.tor-browser-temporary = null;
+      tests.tor-browser-temporary.module = null;
     };
 
     examples.tor-browser-permanent = {
@@ -32,15 +44,9 @@
       links.documentation.text = "Tor Browser";
       links.documentation.url = "https://www.namecoin.org/download/#tor-browser";
       module = ./examples/tor-browser-permanent.nix;
-      tests.tor-browser-permanent = null;
+      tests.tor-browser-permanent.module = null;
     };
 
-    tests.ncdns = "${sources.inputs.nixpkgs}/nixos/tests/ncdns.nix";
+    tests.ncdns.module = pkgs.nixosTests.ncdns;
   };
-
-  metadata.subgrants = [
-    "Namecoin-ZeroNet"
-    "NamecoinCore"
-    "Namecoin-Electrum-NMC"
-  ];
 }

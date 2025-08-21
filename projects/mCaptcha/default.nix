@@ -2,6 +2,7 @@
   lib,
   pkgs,
   sources,
+  ...
 }@args:
 
 {
@@ -26,7 +27,7 @@
     mcaptcha = {
       name = "mcaptcha";
       module = ./services/mcaptcha/module.nix;
-      examples.basic = null;
+      examples.basic.module = null;
       links = {
         setup = {
           text = "Development setup";
@@ -44,6 +45,6 @@
     };
   };
 
-  nixos.tests.bring-your-own-services = import ./services/mcaptcha/tests/bring-your-own-services.nix args;
-  nixos.tests.create-locally = import ./services/mcaptcha/tests/create-locally.nix args;
+  nixos.tests.bring-your-own-services.module = import ./services/mcaptcha/tests/bring-your-own-services.nix args;
+  nixos.tests.create-locally.module = import ./services/mcaptcha/tests/create-locally.nix args;
 }

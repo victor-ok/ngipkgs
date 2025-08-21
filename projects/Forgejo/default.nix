@@ -2,6 +2,7 @@
   lib,
   pkgs,
   sources,
+  ...
 }@args:
 
 {
@@ -25,15 +26,15 @@
       examples.basic = {
         module = ./program/example.nix;
         description = "";
-        tests.basic = null;
+        tests.basic.module = null;
       };
     };
   };
 
   nixos.modules.services = {
     forgejo = {
-      module = "${sources.inputs.nixpkgs}/nixos/modules/services/misc/forgejo.nix";
-      examples.basic = null;
+      module = lib.moduleLocFromOptionString "services.forgejo";
+      examples.basic.module = null;
     };
   };
 

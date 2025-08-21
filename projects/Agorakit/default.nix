@@ -2,9 +2,11 @@
   lib,
   pkgs,
   sources,
+  ...
 }@args:
 {
   metadata = {
+    summary = "A web-based, open source organization tool for collectives";
     subgrants = [
       "Agorakit"
     ];
@@ -12,9 +14,9 @@
 
   nixos = {
     modules.services.agorakit = {
-      module = "${sources.inputs.nixpkgs}/nixos/modules/services/web-apps/agorakit.nix";
-      examples.basic = null;
+      module = lib.moduleLocFromOptionString "services.agorakit";
+      examples.basic.module = null;
     };
-    tests.basic = import "${sources.inputs.nixpkgs}/nixos/tests/web-apps/agorakit.nix" args;
+    tests.basic.module = pkgs.nixosTests.agorakit;
   };
 }

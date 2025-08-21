@@ -2,6 +2,7 @@
   lib,
   pkgs,
   sources,
+  ...
 }@args:
 {
   metadata = {
@@ -40,12 +41,26 @@
         backend = {
           description = "Enables manually starting Libervia's backend and the use of its CLI and TUI clients.";
           module = ./examples/backend.nix;
-          tests.backend = import ./tests/backend.nix args;
+          tests.backend = {
+            module = import ./tests/backend.nix args;
+            problem.broken.reason = ''
+              Fetching times out given the slow source repo: https://repos.goffi.org
+
+              https://buildbot.ngi.nixos.org/#/builders/264/builds/2251
+              https://buildbot.ngi.nixos.org/#/builders/260/builds/2254
+            '';
+          };
         };
         desktop = {
           description = "Enables the use of the Kivy desktop client for Libervia.";
           module = ./examples/desktop.nix;
-          tests.desktop = import ./tests/desktop.nix args;
+          # FIX:
+          tests.desktop = {
+            module = import ./tests/desktop.nix args;
+            problem.broken.reason = ''
+              https://buildbot.ngi.nixos.org/#/builders/473/builds/1182
+            '';
+          };
         };
       };
     };

@@ -2,6 +2,7 @@
   lib,
   pkgs,
   sources,
+  ...
 }@args:
 {
   metadata = {
@@ -20,7 +21,7 @@
       examples.openxc7 = {
         module = ./example.nix;
         description = "";
-        tests.compile-example = import ./test.nix args;
+        tests.compile-example.module = import ./test.nix args;
       };
     };
   };

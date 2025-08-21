@@ -1,3 +1,0 @@
-{
-  programs.mitmproxy.enable = true;
-}

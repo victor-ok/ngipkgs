@@ -1,5 +1,4 @@
 {
-  sources,
   config,
   pkgs,
   lib,
@@ -11,16 +10,14 @@ let
     mkOption
     ;
 
-  mapAppsToList =
-    demo-shell: lib.flatten (map (name: lib.attrValues name.programs) (lib.attrValues demo-shell));
-
   makeManPath = lib.makeSearchPathOutput "man" "share/man";
 
   activate =
-    apps:
+    demo-shell:
     pkgs.writeShellApplication rec {
       name = "demo-shell";
-      runtimeInputs = apps;
+      runtimeInputs = lib.attrValues demo-shell.programs;
+      runtimeEnv = demo-shell.env;
       passthru.inheritManPath = false;
       # HACK: start shell from ./result
       derivationArgs.postCheck = ''
@@ -42,7 +39,7 @@ in
   options.demo-shell = mkOption {
     type =
       with types;
-      attrsOf (submodule {
+      submodule {
         options = {
           programs = mkOption {
             type = attrsOf package;
@@ -53,8 +50,17 @@ in
             };
             default = { };
           };
+          env = mkOption {
+            type = attrsOf str;
+            description = "Set of environment variables that will be passed to the shell.";
+            example = {
+              XRSH_PORT = "9090";
+            };
+            default = { };
+          };
         };
-      });
+      };
+    default = { };
   };
 
   options.shells = mkOption {
@@ -69,10 +75,8 @@ in
           bash.activate = mkOption {
             type = nullOr package;
             default = null;
+            apply = self: activate config.demo-shell;
           };
-        };
-        config = lib.mkIf config.shells.bash.enable {
-          bash.activate = activate (mapAppsToList config.demo-shell);
         };
       };
     default = { };

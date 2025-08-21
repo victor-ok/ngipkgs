@@ -2,6 +2,7 @@
   lib,
   pkgs,
   sources,
+  ...
 }@args:
 
 {
@@ -35,7 +36,7 @@
       examples.basic = {
         module = ./programs/basic/examples/basic.nix;
         description = "";
-        tests.basic = null;
+        tests.basic.module = null;
       };
     };
   };
@@ -43,12 +44,12 @@
   nixos.modules.services = {
     rosenpass = {
       name = "rosenpass";
-      module = "${sources.inputs.nixpkgs}/nixos/modules/services/networking/rosenpass.nix";
+      module = lib.moduleLocFromOptionString "services.rosenpass";
       examples.basic = {
         module = ./services/basic/examples/basic.nix;
         description = "";
-        tests.with-sops = import ./tests args;
-        tests.without-sops = "${sources.inputs.nixpkgs}/nixos/tests/rosenpass.nix";
+        tests.with-sops.module = import ./tests args;
+        tests.without-sops.module = pkgs.nixosTests.rosenpass;
       };
     };
   };

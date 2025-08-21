@@ -122,7 +122,6 @@ let
       pname = "cache-bust";
       inherit version;
 
-      useFetchCargoVendor = true;
       cargoHash = "sha256-e18PJFmvUf3droMT26Q0ZCgVFCwG9y/efPFO0SlILW0=";
     };
 
@@ -192,4 +191,19 @@ let
       };
     };
 in
-mcaptcha
+# Temporary fix: libmcaptcha crashes when redis doesn't reply to a module listing request with the mcaptcha module as
+# the first entry
+# Until this is addressed upstream and has found its way into the version of libmcaptcha used in mcaptcha, add our patch
+mcaptcha.overrideAttrs (oa: {
+  cargoDeps = oa.cargoDeps.overrideAttrs (oa2: {
+    buildCommand = oa2.buildCommand + ''
+      realdir="$(realpath $out/libmcaptcha-0.2.4)"
+      rm "$out/libmcaptcha-0.2.4"
+      cp -r --no-preserve=mode "$realdir" "$out/libmcaptcha-0.2.4"
+
+      pushd "$out/libmcaptcha-0.2.4"
+      patch -p1 < ${./1001-libmcaptcha-Allow-redis-module-to-not-be-first-in-list.patch}
+      popd
+    '';
+  });
+})

@@ -2,6 +2,7 @@
   lib,
   pkgs,
   sources,
+  ...
 }@args:
 {
   metadata = {
@@ -39,7 +40,7 @@
       examples.basic = {
         module = ./programs/basic/examples/basic.nix;
         description = "";
-        tests.basic = import ./programs/basic/tests/basic.nix args;
+        tests.basic.module = import ./programs/basic/tests/basic.nix args;
       };
     };
   };
@@ -47,9 +48,9 @@
   nixos.modules.services = {
     scion = {
       name = "scion";
-      module = "${sources.inputs.nixpkgs}/nixos/modules/services/networking/scion/scion.nix";
-      # TODO: unbreak
-      # tests.scion = "${sources.inputs.nixpkgs}/nixos/tests/scion/freestanding-deployment/default.nix";
+      module = lib.moduleLocFromOptionString "services.scion";
     };
   };
+
+  nixos.tests.scion.module = pkgs.nixosTests.scion-freestanding-deployment;
 }

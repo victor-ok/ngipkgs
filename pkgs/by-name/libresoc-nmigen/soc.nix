@@ -35,17 +35,17 @@ python3Packages.buildPythonPackage rec {
     libresoc-openpower-isa
     nmigen-soc
     yosys
-  ] ++ (with python3Packages; [ cached-property ]);
+  ]
+  ++ (with python3Packages; [ cached-property ]);
 
-  nativeCheckInputs =
-    [
-      power-instruction-analyzer
-      pytest-output-to-files
-    ]
-    ++ (with python3Packages; [
-      pytest-xdist
-      pytestCheckHook
-    ]);
+  nativeCheckInputs = [
+    power-instruction-analyzer
+    pytest-output-to-files
+  ]
+  ++ (with python3Packages; [
+    pytest-xdist
+    pytestCheckHook
+  ]);
 
   disabledTests = [
     # listed failures seem unlikely to result from packaging errors, assumed present upstream
@@ -75,5 +75,7 @@ python3Packages.buildPythonPackage rec {
     description = "A nmigen-based OpenPOWER multi-issue Hybrid 3D CPU-VPU-GPU";
     homepage = "https://git.libre-soc.org/?p=soc.git;a=summary";
     license = lib.licenses.lgpl3Plus;
+    # FIX: https://github.com/NixOS/nixpkgs/issues/389149
+    broken = true;
   };
 }

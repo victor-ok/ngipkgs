@@ -4,10 +4,6 @@
   ...
 }:
 let
-  inherit (lib)
-    mkAfter
-    ;
-
   port = 7000;
   urlRoot = "http://localhost:${builtins.toString port}";
   redisPassword = "(*&(*):ps@r}";
@@ -60,12 +56,12 @@ in
         }
       ];
 
-      systemd.services.postgresql.postStart = mkAfter ''
-        $PSQL my_mcaptcha -c "ALTER USER my_mcaptcha WITH PASSWORD 'mcaptcha-db-secret'"
+      systemd.services.postgresql-setup.postStart = ''
+        psql my_mcaptcha -c "ALTER USER my_mcaptcha WITH PASSWORD 'mcaptcha-db-secret'"
       '';
       services.postgresql.authentication = ''
-        #type  database  DBuser         auth-method
-        host   all       all 0.0.0.0/0  md5
+        #type  database  DBuser  host  auth-method
+        host   all       all     all   md5
       '';
       services.redis.servers.mcaptcha.enable = true;
       services.redis.servers.mcaptcha.port = 6379;
@@ -84,7 +80,9 @@ in
 
       my_own_services.start()
       my_own_services.wait_for_unit("redis-mcaptcha.service")
-      my_own_services.wait_for_unit("postgresql.service")
+      # Waiting for postgresql in multiple steps to avoid timeouts under load
+      my_own_services.wait_for_unit("postgresql.service") # startup
+      my_own_services.wait_for_unit("postgresql.target") # initial setup finished
 
       mcaptcha.start()
 

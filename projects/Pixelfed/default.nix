@@ -2,6 +2,8 @@
   lib,
   pkgs,
   sources,
+  system,
+  ...
 }@args:
 
 {
@@ -23,11 +25,13 @@
 
   nixos.modules.services = {
     pixelfed = {
-      module = "${sources.inputs.nixpkgs}/nixos/modules/services/web-apps/pixelfed.nix";
+      module = lib.moduleLocFromOptionString "services.pixelfed";
       examples.basic = {
         module = ./example.nix;
         description = "";
-        tests.basic = "${sources.inputs.nixpkgs}/nixos/tests/web-apps/pixelfed/standard.nix";
+        # aarch64 is not a supported platform for the test
+        tests.basic.module =
+          if (system != "aarch64-linux") then pkgs.nixosTests.pixelfed.standard else null;
       };
     };
   };

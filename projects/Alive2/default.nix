@@ -2,9 +2,11 @@
   lib,
   pkgs,
   sources,
+  ...
 }@args:
 {
   metadata = {
+    summary = "Translation validation for LLVM";
     subgrants = [
       "Alive2"
     ];
@@ -15,9 +17,9 @@
     examples.basic = {
       module = ./example.nix;
       description = "";
-      tests.basic = import ./test.nix args;
+      tests.basic.module = import ./test.nix args;
       # https://github.com/AliveToolkit/alive2#running-the-standalone-translation-validation-tool-alive-tv
-      tests.translation = null;
+      tests.translation.module = null;
     };
   };
 }

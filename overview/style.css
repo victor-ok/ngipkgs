@@ -286,6 +286,12 @@ code, pre {
   overflow-x: auto;
 }
 
+pre.shell,
+div.code > pre /* for pygments output */
+{
+  padding: 0.5em;
+}
+
 .code-block {
   position: relative;
 }
@@ -300,7 +306,7 @@ code, pre {
   display: inline-block;
   padding: 0.1em 0.4em;
   background-color: transparent;
-  color: white;
+  color: white !important;
   text-align: center;
   text-decoration: none;
   border-radius: 5px;
@@ -328,6 +334,20 @@ code, pre {
 
 .button.download:hover {
   background-color: darkgreen;
+}
+
+.button.example {
+  margin-top: 25px;
+  border-radius: 5px;
+  background-color: darkgreen;
+  padding: 5px
+}
+
+.button.missing {
+  background-color: red;
+  margin-bottom: 15px;
+  border-radius: 5px;
+  padding: 5px
 }
 
 details > summary > h2, details > summary > h3 {
@@ -392,12 +412,16 @@ article.project .deliverable-tag {
   font-weight: 500;
 }
 
+article.project .deliverable-tag.deliverable-has-problem {
+  background-color: lightpink;
+}
+
 .option-name {
   font-weight: 600;
   font-family: "IBM Plex Mono";
 }
 
-.option-readonly {
+.option-alert {
   background: red;
   color: white;
   padding: 0 0.3em;
@@ -418,14 +442,64 @@ article.project .deliverable-tag {
   margin-bottom: 0.5em;
 }
 
+.option-body span.option-alert {
+    margin: 0.5em 0em;
+    display: inline-block;
+}
+
 .option-description p {
   margin-top: 0.5em;
   margin-bottom: 1em;
 }
 
+.option-list {
+  margin: 0.3em 1.2em;
+}
+
+.subgrant-list dt {
+  margin-top: 1.5em;
+  font-weight: 600;
+}
+
+.subgrant-list dd {
+  margin-left: 2em;
+  margin-bottom: 0em;
+}
+
 dd {
   margin-left: 2em;
   margin-bottom: 1.5em;
+}
+
+nav.breadcrumb ol {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+nav.breadcrumb li:not(:last-child):after {
+  content: "/" / "";
+  margin: 0 0.5em;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #3c3434;
+    color: #f0decb;
+  }
+  a:link {
+    color: #9595ff;
+  }
+  a:visited {
+    color: #dc6edf;
+  }
+  code, pre {
+    background: #242222;
+  }
+  .code .ss {
+    color: #5D5AFF !important;
+  }
 }
 
 /* Desktop */

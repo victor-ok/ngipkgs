@@ -76,24 +76,23 @@ let
   # Adapted from upstream's flake.nix outputs.devShell
   shellScript = writeShellApplication {
     name = "openxc7-env";
-    runtimeInputs =
-      [
-        fasm
-        prjxray
-        nextpnr-xilinx
+    runtimeInputs = [
+      fasm
+      prjxray
+      nextpnr-xilinx
 
-        yosys
-        ghdl
-        yosys-ghdl
-        openfpgaloader
-        pypy310
-      ]
-      ++ (with python3Packages; [
-        pyyaml
-        textx
-        simplejson
-        intervaltree
-      ]);
+      yosys
+      ghdl
+      yosys-ghdl
+      openfpgaloader
+      pypy310
+    ]
+    ++ (with python3Packages; [
+      pyyaml
+      textx
+      simplejson
+      intervaltree
+    ]);
     runtimeEnv = {
       "NEXTPNR_XILINX_DIR" = "${nextpnr-xilinx}";
       "NEXTPNR_XILINX_PYTHON_DIR" = "${nextpnr-xilinx}/share/nextpnr/python/";
@@ -128,7 +127,7 @@ let
 in
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "openxc7";
-  version = "0.8.2-unstable-2025-03-14";
+  version = "0.8.2-unstable-2025-04-03";
 
   # We can't use upstream's files via fetched src without introducing IFD
   # or pushing the building onto the user - which makes internet-less VM testing
@@ -137,8 +136,8 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   src = fetchFromGitHub {
     owner = "openXC7";
     repo = "toolchain-nix";
-    rev = "f358781e5c21a59ab9c8c10f03beb81d8f8e468a";
-    hash = "sha256-KwFHIGKzY5SdXPbhXj9LcHRlj2MPHVrmam8QECzWysY=";
+    rev = "b2ca2c45c8a4919fffe04a8716654dc9bba6c7c1";
+    hash = "sha256-M4nlDnuFiOVDQvd360NsRPU7jsepIvehEHvIyL/uCSc=";
   };
 
   dontUnpack = true;
@@ -176,6 +175,9 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     platforms = lib.platforms.linux;
     # ghdl -> gnat -> gnat-bootstrap only available for very specific platforms
     # Mark broken if bootstrapping gnat is unavailable, to keep CI green
-    broken = !lib.meta.availableOn stdenvNoCC.hostPlatform gnat-bootstrap;
+    # FIX: re-enable after this is solved
+    # https://github.com/NixOS/nixpkgs/issues/419942
+    # broken = !lib.meta.availableOn stdenvNoCC.hostPlatform gnat-bootstrap;
+    broken = true;
   };
 })

@@ -2,6 +2,7 @@
   lib,
   pkgs,
   sources,
+  ...
 }@args:
 
 {
@@ -26,7 +27,7 @@
       examples.basic = {
         module = ./programs/briar/examples/basic.nix;
         description = "";
-        tests.basic = null;
+        tests.basic.module = null;
       };
     };
   };

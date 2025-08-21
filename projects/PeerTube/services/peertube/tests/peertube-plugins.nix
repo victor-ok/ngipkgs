@@ -14,8 +14,34 @@
         imports = [
           sources.modules.ngipkgs
           sources.modules.services.peertube
-          sources.examples.PeerTube.basic
+          sources.examples.PeerTube.basic-server
         ];
+
+        # Test every plugin
+        services.peertube.plugins.plugins =
+          with pkgs;
+          lib.mkForce [
+            # Official plugins
+            peertube-plugin-akismet
+            peertube-plugin-auth-ldap
+            peertube-plugin-auth-openid-connect
+            peertube-plugin-auth-saml2
+            peertube-plugin-auto-block-videos
+            peertube-plugin-auto-mute
+            peertube-plugin-hello-world
+            peertube-plugin-logo-framasoft
+            peertube-plugin-matomo
+            peertube-plugin-privacy-remover
+            peertube-plugin-transcoding-custom-quality
+            peertube-plugin-transcoding-profile-debug
+            peertube-plugin-video-annotation
+            peertube-theme-background-red
+            peertube-theme-dark
+            peertube-theme-framasoft
+
+            # 3rd party plugins
+            peertube-plugin-livechat
+          ];
 
         boot.kernelPackages = pkgs.linuxPackages_latest;
       };
@@ -55,9 +81,6 @@
 
       # And the plugins should now be loaded
       # The order of the checks here is based on when different plugins emit their log messages
-
-      with subtest("peertube plugin ${pkgs.peertube-plugin-livechat.pname} works"):
-          server.wait_for_console_text("loading peertube admins and moderators")
 
       with subtest("peertube plugin ${pkgs.peertube-plugin-hello-world.pname} works"):
           server.wait_for_console_text("hello world PeerTube admin")

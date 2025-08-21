@@ -2,6 +2,7 @@
   lib,
   pkgs,
   sources,
+  ...
 }@args:
 
 {
@@ -21,11 +22,11 @@
   nixos.modules.services = {
     gnunet = {
       name = "gnunet";
-      module = "${sources.inputs.nixpkgs}/nixos/modules/services/networking/gnunet.nix";
+      module = lib.moduleLocFromOptionString "services.gnunet";
       examples.basic = {
         module = ./services/gnunet/examples/basic.nix;
         description = "";
-        tests.basic = import ./services/gnunet/tests/basic.nix args;
+        tests.basic.module = import ./services/gnunet/tests/basic.nix args;
       };
       links = {
         build = {

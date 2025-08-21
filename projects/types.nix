@@ -19,7 +19,7 @@ let
           };
           # TODO: convert all subgrants to `subgrant`, remove listOf
           subgrants = mkOption {
-            type = either (listOf str) types'.subgrant;
+            type = with types; nullOr (either (listOf str) types'.subgrant);
             default = null;
           };
           links = mkOption {
@@ -105,17 +105,78 @@ let
             };
             module = mkOption {
               type = nullOr deferredModule;
+              description = ''
+                Contains the path to the NixOS module for the program.
+
+                For modules that reside in NixOS, use:
+
+                ```nix
+                {
+                  module = lib.moduleLocFromOptionString "programs.PROGRAM_NAME";
+                }
+                ```
+
+                If you want to extend such modules, you can import them in a new module:
+
+                ```nix
+                {
+                  module = ./module.nix;
+                }
+                ```
+
+                Where `module.nix` contains:
+
+                ```nix
+                { lib, ... }:
+                {
+                  imports = [
+                    (lib.moduleLocFromOptionString "programs.PROGRAM_NAME")
+                  ];
+
+                  options.programs.PROGRAM_NAME = {
+                    extra-option = lib.mkEnableOption "extra option";
+                  };
+                }
+                ```
+              '';
             };
             examples = mkOption {
-              type = attrsOf (nullOr types'.example);
-              default = { };
-            };
-            extensions = mkOption {
-              type = attrsOf (nullOr types'.plugin);
+              type = attrsOf types'.example;
+              description = ''
+                Configurations that illustrate how to set up the program.
+
+                ::: {.note}
+                Each program must include at least one example, so users get an idea of what to do with it.
+                :::
+              '';
+              example = lib.literalExpression ''
+                nixos.modules.foobar.examples.basic = {
+                  module = ./programs/foobar/examples/basic.nix;
+                  description = "Basic configuration example for foobar";
+                  tests.foobar-basic.module = import ./programs/foobar/tests/basic.nix args;
+                };
+              '';
               default = { };
             };
             links = mkOption {
               type = attrsOf types'.link;
+              description = ''
+                Links to documentation or resources that may help building, configuring and testing the program.
+              '';
+              example = {
+                usage = {
+                  text = "Usage examples";
+                  url = "https://docs.foobar.com/quickstart";
+                };
+                build = {
+                  text = "Build from source";
+                  url = "https://docs.foobar.com/dev";
+                };
+              };
+              default = { };
+            };
+            extensions = mkOption {
+              type = attrsOf (nullOr types'.plugin);
               default = { };
             };
           };
@@ -137,8 +198,8 @@ let
               type = nullOr deferredModule;
             };
             examples = mkOption {
-              type = nullOr (attrsOf (nullOr types'.example));
-              default = null;
+              type = attrsOf types'.example;
+              default = { };
             };
             extensions = mkOption {
               type = nullOr (attrsOf (nullOr types'.plugin));
@@ -159,44 +220,116 @@ let
     # TODO: implement this, now that we're using the module system
     plugin = with types; anything;
 
-    nonEmtpyAttrs =
-      elemType:
+    example =
       with types;
-      (
-        (attrsOf elemType)
-        // {
-          name = "nonEmtpyAttrs";
-          description = "non-empty attribute set";
-          check = x: lib.isAttrs x && x != { };
+      submodule (
+        { name, ... }:
+        {
+          options = {
+            name = mkOption {
+              type = types.str;
+              default = name;
+            };
+            module = mkOption {
+              description = ''
+                File path to a NixOS module that contains the application configuration
+              '';
+              type = with types; nullOr path;
+            };
+            description = mkOption {
+              description = "description of the example, ideally with further instructions on how to use it";
+              type = with types; nullOr str;
+              default = null;
+            };
+            tests = mkOption {
+              description = "at least one test for the example";
+              type = types.attrsOf types'.test;
+              default = { };
+            };
+            links = mkOption {
+              description = "links to related resources";
+              type = types.attrsOf types'.link;
+              default = { };
+            };
+          };
         }
       );
 
-    example =
-      with types;
-      submodule {
+    demo = types.submodule (
+      { name, ... }:
+      {
         options = {
-          module = mkOption {
-            description = "the example must be a NixOS module in a file";
-            type = deferredModule;
-          };
-          description = mkOption {
-            description = "description of the example, ideally with further instructions on how to use it";
-            type = nullOr str;
-            default = null;
-          };
-          tests = mkOption {
-            description = "at least one test for the example";
-            type = types'.nonEmtpyAttrs (nullOr types'.test);
-          };
-          links = mkOption {
-            description = "links to related resources";
-            type = attrsOf types'.link;
+          inherit (types'.example.getSubOptions { })
+            module
+            tests
+            description
+            links
+            ;
+          module-demo = mkOption {
+            description = ''
+              NixOS module that contains everything needed to use an application demo conveniently
+            '';
+            type = types.deferredModuleWith {
+              staticModules =
+                lib.optionals (name == "vm") [
+                  ../overview/demo/vm
+                ]
+                ++ lib.optionals (name == "shell") [
+                  ../overview/demo/shell.nix
+                ];
+            };
             default = { };
+          };
+          problem = mkOption {
+            type = types.nullOr types'.problem;
+            default = null;
+            example = {
+              problem.broken = {
+                reason = "Does not work as intended. Needs fixing.";
+              };
+            };
+          };
+          usage-instructions = mkOption {
+            default = [ ];
+            type = types.listOf (
+              types.submodule {
+                options = {
+                  instruction = mkOption {
+                    type = types.str;
+                  };
+                };
+              }
+            );
+          };
+        };
+      }
+    );
+
+    problem = types.attrTag {
+      broken = mkOption {
+        type = types.submodule {
+          options.reason = mkOption {
+            type = types.str;
           };
         };
       };
+    };
 
-    test = with types; either deferredModule package;
+    test = types.submodule {
+      options = {
+        module = mkOption {
+          # - null: needed, but not available
+          # - deferredModule: something that nixosTest will run
+          # - package: derivation from NixOS
+          type = with types; nullOr (either deferredModule package);
+          default = null;
+        };
+        problem = mkOption {
+          type = types.nullOr types'.problem;
+          default = null;
+        };
+      };
+    };
 
     projects = mkOption {
       type =
@@ -223,12 +356,33 @@ let
                     with types;
                     submodule {
                       options = {
-                        modules.programs = mkOption {
-                          type = nullOr (attrsOf (nullOr types'.program));
-                          default = null;
+                        modules = {
+                          programs = mkOption {
+                            type = attrsOf types'.program;
+                            description = "Software that can be run in the shell";
+                            example = lib.literalExpression ''
+                              nixos.modules.programs.foobar = {
+                                module = ./programs/foobar/module.nix;
+                                examples.basic = {
+                                  module = ./programs/foobar/examples/basic.nix;
+                                  description = "Basic configuration example for foobar";
+                                  tests.basic.module = import ./programs/foobar/tests/basic.nix args;
+                                };
+                              };
+                            '';
+                            default = { };
+                          };
+                          services = mkOption {
+                            type = attrsOf types'.service;
+                            description = "Software that runs as a background process";
+                            default = { };
+                          };
                         };
-                        modules.services = mkOption {
-                          type = nullOr (attrsOf (nullOr types'.service));
+                        demo = mkOption {
+                          type = nullOr (attrTag {
+                            vm = mkOption { type = types'.demo; };
+                            shell = mkOption { type = types'.demo; };
+                          });
                           default = null;
                         };
                         # An application component may have examples using it in isolation,
@@ -237,16 +391,17 @@ let
                         # If this tends to be too cumbersome for package authors and we find a way obtain coverage information programmatically,
                         # we can still reduce granularity and move all examples to the application level.
                         examples = mkOption {
-                          type = nullOr (attrsOf types'.example);
-                          default = null;
+                          type = attrsOf types'.example;
+                          description = "A configuration of an existing application module that illustrates how to use it";
+                          default = { };
                         };
                         # TODO: Tests should really only be per example, in order to clarify that we care about tested examples more than merely tests.
                         #       But reality is such that most NixOS tests aren't based on self-contained, minimal examples, or if they are they can't be extracted easily.
                         #       Without this field, many applications will appear entirely untested although there's actually *some* assurance that *something* works.
                         #       Eventually we want to move to documentable tests exclusively, and then remove this field, but this may take a very long time.
                         tests = mkOption {
-                          type = nullOr (attrsOf types'.test);
-                          default = null;
+                          type = attrsOf types'.test;
+                          default = { };
                         };
                       };
                     };

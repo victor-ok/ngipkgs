@@ -2,6 +2,7 @@
   lib,
   pkgs,
   sources,
+  ...
 }@args:
 
 {
@@ -15,11 +16,17 @@
   nixos.modules.services = {
     canaille = {
       name = "Canaille";
-      module = "${sources.inputs.nixpkgs}/nixos/modules/services/security/canaille.nix";
+      module = lib.moduleLocFromOptionString "services.canaille";
       examples.basic = {
         module = ./services/Canaille/examples/basic.nix;
         description = "";
-        tests.canaille = "${sources.inputs.nixpkgs}/nixos/tests/canaille.nix";
+        # FIX:
+        tests.canaille = {
+          module = pkgs.nixosTests.canaille;
+          problem.broken.reason = ''
+            https://github.com/pallets-eco/flask-alembic/issues/47
+          '';
+        };
       };
       links = {
         build = {

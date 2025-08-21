@@ -4,6 +4,8 @@
   dream2nix,
   ...
 }:
+# TODO: migrate away from dream2nix
+# https://github.com/ngi-nix/ngipkgs/issues/1125
 let
   version = "3.1.1";
   src = config.deps.fetchFromGitLab {
@@ -12,6 +14,22 @@ let
     rev = "v${version}";
     hash = "sha256-RpEaO/3jje/ABdIGrnBo1sYPHpuUuDfe4uuJON9RiqY=";
   };
+
+  # Python dependencies need an explicit format
+  # https://github.com/NixOS/nixpkgs/pull/421660
+  pyprojectOverrides =
+    lib.genAttrs
+      [
+        "markupsafe"
+        "feedgen"
+        "pyqrcode"
+        "sqlalchemy-json"
+        "typed-ast"
+        "unicodecsv"
+      ]
+      (name: {
+        buildPythonPackage.pyproject = true;
+      });
 in
 {
   imports = [ dream2nix.modules.dream2nix.pip ];
@@ -27,7 +45,7 @@ in
         postgresql
         postgresqlTestHook
         runCommand
-        substituteAll
+        replaceVars
         ;
       python = nixpkgs.python311;
     };
@@ -119,10 +137,10 @@ in
         };
       };
       python-magic = {
+        buildPythonPackage.pyproject = true;
         mkDerivation = {
           patches = [
-            (config.deps.substituteAll {
-              src = ./libmagic-path.patch;
+            (config.deps.replaceVars ./libmagic-path.patch {
               libmagic = "${config.deps.file}/lib/libmagic.so";
             })
           ];
@@ -133,7 +151,8 @@ in
           dontBuild = true;
         };
       };
-    };
+    }
+    // pyprojectOverrides;
     flattenDependencies = true;
   };
 

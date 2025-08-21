@@ -2,6 +2,7 @@
   lib,
   pkgs,
   sources,
+  ...
 }@args:
 
 {
@@ -24,33 +25,26 @@
     };
   };
 
-  nixos.modules.programs = {
-    taler = {
-      module = ./program.nix;
-      examples.backup = {
-        module = ./examples/backup.nix;
-        description = "Backup with anastasis";
-        # FIX: enable after separating nixpkgs invocation
-        # https://github.com/ngi-nix/ngipkgs/pull/861
-        # tests.anastasis = import ../../pkgs/by-name/anastasis/test.nix {
-        #   inherit lib pkgs;
-        #   inherit (pkgs) nixosTest anastasis;
-        # };
-        tests.anastasis = null;
-      };
-    };
-  };
-
   nixos.modules.services = {
     taler = {
-      module = "${sources.inputs.nixpkgs}/nixos/modules/services/finance/taler/module.nix";
-      examples.basic = {
+      module = lib.moduleLocFromOptionString "services.taler";
+      examples."Basic GNU Taler configuration" = {
         # See https://github.com/NixOS/nixpkgs/blob/master/nixos/tests/taler/common/nodes.nix
+        # TODO: render multi-file examples in the overview
         module = ./examples/basic/default.nix;
-        description = "Basic GNU Taler configuration";
-        # FIX: currently broken in nixpkgs
-        # tests.basic = "${sources.inputs.nixpkgs}/nixos/tests/taler/tests/basic.nix";
-        tests.basic = null;
+        tests.basic.module = pkgs.nixosTests.taler.basic;
+        tests.basic.problem.broken.reason = ''
+          Libeufin dependencies need to be updated
+
+          https://github.com/NixOS/nixpkgs/pull/425714
+        '';
+      };
+      examples."Backup with anastasis" = {
+        module = ./examples/backup.nix;
+        tests.anastasis.module = import ../../pkgs/by-name/anastasis/test.nix {
+          inherit lib pkgs;
+          inherit (pkgs) nixosTest anastasis;
+        };
       };
     };
   };

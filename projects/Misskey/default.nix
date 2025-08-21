@@ -2,6 +2,7 @@
   lib,
   pkgs,
   sources,
+  ...
 }@args:
 
 {
@@ -15,11 +16,11 @@
   nixos.modules.services = {
     misskey = {
       name = "Misskey";
-      module = "${sources.inputs.nixpkgs}/nixos/modules/services/web-apps/misskey.nix";
+      module = lib.moduleLocFromOptionString "services.misskey";
       examples.basic = {
         module = ./services/misskey/examples/basic.nix;
         description = "";
-        tests.misskey = "${sources.inputs.nixpkgs}/nixos/tests/misskey.nix";
+        tests.misskey.module = pkgs.nixosTests.misskey;
       };
     };
   };

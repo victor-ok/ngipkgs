@@ -2,6 +2,7 @@
   pkgs,
   lib,
   sources,
+  ...
 }@args:
 {
   metadata = {
@@ -12,11 +13,10 @@
   };
   nixos.modules.services = {
     gancio = {
-      module = "${sources.inputs.nixpkgs}/nixos/modules/services/web-apps/gancio.nix";
-      examples.gancio = {
+      module = lib.moduleLocFromOptionString "services.gancio";
+      examples."Enable Gancio" = {
         module = ./example.nix;
-        description = "";
-        tests.gancio = "${sources.inputs.nixpkgs}/nixos/tests/gancio.nix";
+        tests.gancio.module = pkgs.nixosTests.gancio;
       };
     };
   };

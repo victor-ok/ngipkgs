@@ -2,6 +2,7 @@
   lib,
   pkgs,
   sources,
+  ...
 }@args:
 
 {
@@ -25,17 +26,13 @@
       examples.basic = {
         module = ./example.nix;
         description = "";
-        tests.basic = null;
+        tests.basic.module = null;
       };
     };
   };
 
-  binary =
-    # https://github.com/ngi-nix/ngipkgs/pull/773
-    if builtins ? currentSystem then
-      {
-        "libresoc.v".data = pkgs.libresoc-verilog;
-      }
-    else
-      { };
+  # FIX: https://github.com/NixOS/nixpkgs/issues/389149
+  # binary = {
+  #   "libresoc.v".data = pkgs.libresoc-verilog;
+  # };
 }

@@ -74,7 +74,7 @@ Instead, write one sentence per line, as this makes it easier to review changes.
    $EDITOR projects/some-project/default.nix
    ```
 
-   Note that for new projects, it's ideal that you follow the [triaging template](#triaging-an-ngi-project) workflow and create a new issue, detailing some information about this project.
+   Note that for new projects, it's ideal that you follow the [triaging template](#triaging-an-ngi-application) workflow and create a new issue, detailing some information about this project.
    This will allow you to get more familiar with the project and fill out the template more easily.
 
 1. To add a NixOS service module, start by editing the `default.nix` file in the directory `projects/some-project`.
@@ -177,60 +177,260 @@ Instead, write one sentence per line, as this makes it easier to review changes.
 1. After the build succeeds, verify that the package works, if possible.
    This means running package tests if they're available or at least verify that the built package is not broken with something like `program_name --help`.
 
-## Triaging an NGI project
+## Implementing a program
 
-The following information is needed to [open an issue for a new NGI project](https://github.com/ngi-nix/ngipkgs/issues/new?template=project-triaging.yaml):
+A program is a software applications that can be executed in the user's shell, which may have a Command-Line Interface (CLI), Terminal User Interface (TUI), or Graphical User Interface (GUI).
 
-1. Navigate to <https://nlnet.nl/project/>.
-   In the search bar, type the project name and look for any related projects.
+1. To start, implement a NixOS module that adheres to the [program type](./projects/types.nix):
 
-   ```md
-   - https://nlnet.nl/project/foobar
-   - https://nlnet.nl/project/foobar-core
+<!-- TODO: figure out how to get this automatically from types.nix -->
+<!-- TODO: link to docs section on implementing an example? -->
+
+   ```nix
+   {
+     nixos.modules.programs.foobar = {
+       module = ./programs/foobar/module.nix;
+       examples."Enable foobar" = {
+         module = ./programs/foobar/examples/basic.nix;
+         description = "Usage instructions for foobar";
+         tests.basic.module = import ./programs/foobar/tests/basic.nix args;
+       };
+     };
+   }
    ```
 
-   In the project pages, look for any `website` or `source code` links and open them.
+1. Verify that the module is valid:
 
-1. We'd like to know some information about the `framework` and `dependency management` tools the project is using which helps us to estimate the time and effort needed to package it. If possible, we'd also like to know about Nix development environments, if they exist in the repo.
-
-   ```md
-   - Language/Framework: Python/Django
-   - Dependency management: pip
-   - Development environment: [default.nix, shell.nix, flake.nix, devenv.nix, ...](<FILE_LINK>)
+   ```shellSession
+   nix-build -A checks.PROJECT_NAME
    ```
 
-1. In the project's website, look for any tabs or buttons that lead to the documentation. You may also use your favorite search engine and look for `<PROJECT_NAME> documentation`.
-   The most important information we need are the instructions for building the project from source and examples for using it.
-   If the project has multiple components, it would be ideal to have this information for each one of them.
+1. Run the tests, if they exist, and make sure they pass:
+
+   ```shellSession
+   nix-build -A projects.PROJECT_NAME.nixos.tests.TEST_NAME
+   ```
+
+1. [Run the overview locally](#running-and-testing-the-overview-locally), navigate to the project page and make sure that the program options and examples shows up correctly.
+
+1. [Make a Pull Request on GitHub](#how-to-create-pull-requests-to-ngipkgs)
+
+## Triaging an NGI application
+
+An NGI-funded application is triaged by collecting relevant information and resources related to its packaging, which can be in the form of links to source repositories, documentation, previous packaging attempts, ...
+This task helps us understand the current packaging completion, which deliverables we need to implement and to estimate the time and effort it would take us to do so.
+
+> [!NOTE]
+>
+> - This task should not exceed 1 Hour.
+> - For some complete examples, please see:
+>   - [NGI Project: Kaidan](https://github.com/ngi-nix/ngipkgs/issues/1072)
+>   - [NGI Project: Galene](https://github.com/ngi-nix/ngipkgs/issues/663)
+
+To start, open a [blank issue](https://github.com/ngi-nix/ngipkgs/issues/new?template=BLANK_ISSUE) in GitHub with the title `<PROJECT_NAME>: Triaged data`.
+Then, for each of the following sections, copy the code blocks, follow the instructions, and add the data.
+
+### Short summary
+
+Provide a short description of the project.
+This needs be brief and also capture the essence of what the project does.
+
+   ```markdown
+   ### Short summary
+
+   <!-- A short description of the project -->
+
+   ```
+
+### NLnet page(s)
+
+1. Navigate to the [NLnet project list](https://nlnet.nl/project/)
+2. Enter the project name in the search bar
+3. Review all the entries returned by the search
+4. Collect the links to entries that relate to the project
+
+   ```markdown
+   ### NLnet page(s)
+
+   <!-- For example, for a project called `Foobar`, this can be something like:
+
+   - <https://nlnet.nl/project/Foobar>
+   - <https://nlnet.nl/project/Foobar-mobile> -->
+
+   -
+   -
+   ```
+
+### Resources
+
+Provide the project's website and the location where the source code is hosted.
+Additionally, include information about the programming languages, build tools used, as well as any dependency management systems in place.
+
+   ```markdown
+   ### Website
+
+   <!-- The main project website, as found in the NLnet pages. -->
+
+   -
+
+   ### Source repositories
+
+   <!-- For example, for a project called `Foobar`, this can be something like:
+
+    - https://github.com/foo/foobar
+      - Language/Framework: Python
+      - Dependency management: Nix
+      - Nix development environment: [default.nix](https://github.com/foo/foobar/default.nix)
+
+    - https://github.com/foo/foobar-mobile
+      - Language/Framework: Java
+      - Dependency management: Gradle
+      - Nix development environment: -->
+
+   - <REPOSITORY_LINK>
+    - Language/Framework:
+    - Dependency management:
+    - Nix development environment:
+   ```
+
+> [!NOTE]
+> Use your best judgment to gather information about the project.
+> If you're uncertain about something, try using a search engine.
+> If you're still unsure after that, it's okay to leave it empty and move on.
+
+Next, provide any links to documentation and any other resource that can help with building the project from source or with configuring and using it.
 
    ```md
+   ### Documentation
+
+   <!-- Example for a project called `Foobar`:
+
    - Usage Examples:
      - https://foo.bar/docs/quickstart
    - Build from source/Development:
      - foobar-cli: https://foo.bar/docs/dev/cli
      - foobar-mobile: https://foo.bar/docs/dev/mobile
+   - Other:
+     - Wiki
+     - Notes -->
+
+   - Usage Examples:
+    -
+    -
+   - Build from source/Development:
+    -
+    -
+   - Other:
+    -
+    -
    ```
 
-1. Go to the [nixpkgs search](https://search.nixos.org/packages) and [services search](https://search.nixos.org/options?) and check if anything related to the project is already packaged.
+> [!TIP]
+>
+> On the project's website, look for tabs or buttons that lead to the documentation.
+> You can also use your favorite search engine to search for <PROJECT_NAME> documentation.
+> If no such page exists, check the source repositories, instead.
 
-   ```md
+### Artefacts
+
+List all project components and include links to any relevant documentation or information you can find about each one.
+
+   ```markdown
+   ### Artefacts
+
+   <!-- Example for a project called `Foobar`:
+
+   - CLI:
+     - foobar:
+         - documentation: https://foo.bar/docs/dev/build
+         - examples: https://foo.bar/docs/usage
+         - tests: https://github.com/foo/foobar/tests
+   - Mobile Apps:
+     - foobar-mobile:
+         - documentation: https://foo.bar/docs/dev/mobile -->
+
+   - CLI:
+   - GUI:
+   - Services/daemons:
+   - Libraries:
+   - Extensions:
+   - Mobile Apps:
+   ```
+
+### Previous packaging
+
+To avoid duplicaiton of effort and to correctly track our packaging progress, we also want to know whether or not any prior work has gone through packaging the project.
+
+To do this, please go and search for the project's name and note any results from the following places:
+    - The [ngipkgs/projects](https://github.com/ngi-nix/ngipkgs/tree/main/projects) and [pkgs/by-name](https://github.com/ngi-nix/ngipkgs/tree/main/pkgs/by-name) directories
+    - **Non-archived** repositories in the [ngi-nix GitHub organisation](https://github.com/orgs/ngi-nix/repositories?language=&q=archived%3Afalse+&sort=&type=all)
+
+   ```markdown
+   ### NGIpkgs
+
+   <!-- For example, for `Liberaforms`:
+   - project: https://github.com/ngi-nix/ngipkgs/tree/main/projects/Liberaforms
+     - programs/serivces:
+       - https://github.com/ngi-nix/ngipkgs/blob/main/projects/Liberaforms/service.nix
+     - examples:
+       - https://github.com/ngi-nix/ngipkgs/tree/main/projects/Liberaforms/example.nix
+     - tests:
+       - https://github.com/ngi-nix/ngipkgs/tree/main/projects/Liberaforms/test.nix
+   - pkgs/by-name:
+     - https://github.com/ngi-nix/ngipkgs/tree/main/pkgs/by-name/liberaforms
+   - ngi-nix repository
+     - https://github.com/ngi-nix/liberaforms-flake -->
+
+   - project:
+   - pkgs/by-name:
+   - ngi-nix repository:
+   ```
+
+Next, go to the nixpkgs search pages for
+[packages](https://search.nixos.org/packages) and
+[services](https://search.nixos.org/options?) and check if anything
+related to the project is already packaged.
+
+For packages, copy the package name along with the source URL.
+For services, click on the module name to reveal more details, then copy the name and the URL from the `Declared in` field.
+
+   ```markdown
+   ### Nixpkgs/NixOS
+
+   <!-- Example:
+       - Packages:
+           - [canaille](https://github.com/NixOS/nixpkgs/blob/nixos-unstable/pkgs/by-name/ca/canaille/package.nix#L134)
+       - Services:
+           - [services.canaille](https://github.com/NixOS/nixpkgs/blob/nixos-unstable/nixos/modules/services/security/canaille.nix) -->
+
    - Packages:
-     - [<NAME>](<SOURCE_LINK>)
    - Services:
-     - [<NAME>](<SOURCE_LINK>)
+
+   ### Extra Information
+
+   <!-- Anything interesting or helpful for packaging the project like notes, issues or pull requests -->
    ```
 
-## Adding/Exposing an NGI project
+> [!NOTE]
+> Similar names will be returned by the search if no exact matches are found.
+> The most relevant entries at the top, so if you don't see anything that's related to the project there then it's likely not packaged in nixpkgs, yet.
+>
+> Example: Searching for Oku (web browser) might also return Okular (document viewver), which share a similar names, but which are totally unrelated.
 
-1. Copy the project template to the projects directory:
+## Exposing an NGI project
+
+In order to display a project on <ngi.nixos.org>, its metadata must be added to this repository's source code in a certain format.
+
+1. Copy the [project template](./maintainers/templates/project) to the projects directory:
 
    ```
    cp -r maintainers/templates/project projects/<project_name>
    ```
 
-1. Search for `NGI Project: <project_name>` in the [Ngipkgs issues](https://github.com/ngi-nix/ngipkgs/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22NGI%20Project%22) page.
-   If a page with that name exists, use the information available there in the next step.
-1. Follow the instructions inside the `projects/<project_name>/default.nix` file and fill in the missing data about the project.
+1. Follow the instructions inside the [`projects/<project_name>/default.nix`](./maintainers/templates/project/default.nix) file, and fill in the data based on the project's tracking issue.
+
+   Project tracking issues are labeled with [`NGI Project`](https://github.com/ngi-nix/ngipkgs/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22NGI%20Project%22).
+
 1. Check that the code is valid by running the test locally:
 
    ```
@@ -240,16 +440,52 @@ The following information is needed to [open an issue for a new NGI project](htt
 1. Run the Nix code formatter with `nix fmt`
 1. Commit your changes and [create a new PR](#how-to-create-pull-requests-to-ngipkgs)
 
+## How to add an example
+
+An example, is a valid configuration of an existing application module that illustrates how to use it.
+Examples should capture a characteristic use case of the application and work exactly as shown.
+Therefore, examples are only displayed to users if they have working tests.
+
+To add an example:
+
+> [!IMPORTANT]
+> If there exists an upstream test in NixOS, split out the configuration under test into a separate file and use those as the example and its test and skip to step 4.
+
+1. Figure out the application module options and how they are configured. For instace, this can be done by looking at the module's source code.
+
+2. Create a new `.nix` file to contain the valid example configuration.
+> [!NOTE]
+>
+> - Examples should work as-is without requiring additional configuration outside of what's shown.
+> - Include all necessary options and dependent services.
+
+3. In the project's `default.nix`, reference the example with a clear description:
+> [!NOTE]
+>
+> - Descriptions are for instructions on playing with the example.
+> - They are optional, but important.
+
+   ```nix
+   nixos.modules.services.some-service = {
+     module = ./services/some-service/module.nix;
+     examples."Basic mail server setup with default ports" = {
+      module = ./services/some-service/examples/basic.nix;
+      description = "Send email via SMTP to port 587 to check that it works";
+     };
+   };
+   ```
+4. Ensure the example works by building and running its test.
+<!--TODO: Reference the tests section when it is written -->
+
 ## Running and testing the overview locally
 
-1. To run a local version of the overview, enter a development shell with:
+1. To preview a local version of the [overview](https://ngi.nixos.org/), run a live watcher with:
 
    ```
-   nix-shell -A shell
+   nix-shell --run devmode
    ```
 
-2. Execute the `devmode` command.
-3. The overview will automatically open in your default browser.
+2. The overview will automatically open in your default browser.
 
 If you make any changes to the overview while running `devmode`, the server will automatically be reloaded with the new contents in a few seconds, after you save.
 

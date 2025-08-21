@@ -2,6 +2,7 @@
   lib,
   pkgs,
   sources,
+  ...
 }@args:
 
 {
@@ -40,13 +41,19 @@
   # NOTE: Replace `_programName_` with the actual program name
   nixos.modules.programs = {
     _programName_ = {
-      name = "program name";
+      name = "_programName_";
       # if a project has `packages`, add them inside the `module.nix` file
       module = ./programs/_programName_/module.nix;
-      examples.basic = {
+      examples."Enable _programName_" = {
         module = ./programs/_programName_/examples/basic.nix;
-        description = "";
-        tests.basic = import ./programs/_programName_/tests/basic.nix args;
+        description = ''
+          Usage instructions
+
+          1.
+          2.
+          3.
+        '';
+        tests.basic.module = import ./programs/_programName_/tests/basic.nix args;
       };
       # Add relevant links to the program (if they're available)
       # else, remove the `links` attribute below
@@ -68,27 +75,33 @@
     _serviceName_ = {
       name = "service name";
       # Check if the service exists in https://search.nixos.org/options?
-      # If it does, click on one of its options and copy the text in the `Declared in` field
-      # into the `module` attribute:
+      # If it does, click on one of its options and copy the text in the `Name` field
+      # into the `module` attribute (use the root option name):
       #
       # ```nix
-      # module = "${sources.inputs.nixpkgs}/<DECLARED_IN_TEXT>";
+      # module = lib.moduleLocFromOptionString "<NAME>";
       # ```
       #
       # Example (Cryptpad):
       #
       # ```nix
-      # module = "${sources.inputs.nixpkgs}/nixos/modules/services/web-apps/cryptpad.nix";
+      # module = lib.moduleLocFromOptionString "services.cryptpad";
       # ```
       #
       # Note: we can either use the module in nixpkgs or make one ourselves
       # inside a `module.nix` file, but we can't do both at the same time.
       #
       module = ./services/_serviceName_/module.nix;
-      examples.basic = {
+      examples."Enable _serviceName_" = {
         module = ./services/_serviceName_/examples/basic.nix;
-        description = "";
-        tests.basic = import ./services/_serviceName_/tests/basic.nix args;
+        description = ''
+          Usage instructions
+
+          1.
+          2.
+          3.
+        '';
+        tests.basic.module = import ./services/_serviceName_/tests/basic.nix args;
       };
       # Add relevant links to the service (if they're available)
       # else, remove the `links` attribute below
